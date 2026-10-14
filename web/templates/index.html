@@ -1,0 +1,632 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quotex Elite Terminal - منصة التداول والتحليل اللحظي (Render 24/7)</title>
+    <!-- Tailwind CSS via CDN for fast standalone rendering -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;800;900&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Cairo', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #0b0f19; }
+        ::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #334155; }
+        .canvas-container { position: relative; width: 100%; height: 380px; }
+    </style>
+</head>
+<body class="bg-gray-950 text-gray-100 font-sans antialiased selection:bg-emerald-500 selection:text-gray-950 overflow-x-hidden">
+
+    <div class="flex h-screen overflow-hidden">
+        
+        <!-- Sidebar Navigation -->
+        <aside class="hidden md:flex md:flex-shrink-0 w-72 bg-gray-900 border-l border-gray-800 flex-col justify-between">
+            <div>
+                <!-- Brand -->
+                <div class="flex items-center justify-between h-20 px-6 bg-gray-950 border-b border-gray-800">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-blue-600 flex items-center justify-center shadow-lg shadow-emerald-500/20">
+                            <i class="fas fa-shield-alt text-white text-xl"></i>
+                        </div>
+                        <div>
+                            <span class="text-xl font-black tracking-wider text-transparent bg-clip-text bg-gradient-to-l from-emerald-400 via-teal-300 to-blue-400 block font-mono">
+                                QUOTEX ELITE
+                            </span>
+                            <span class="text-[10px] text-gray-400 font-bold block -mt-1 tracking-widest">
+                                RENDER CLOUD 24/7
+                            </span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Nav Items -->
+                <nav class="p-4 space-y-2 mt-2">
+                    <a href="#" class="flex items-center gap-3 px-4 py-3.5 bg-gradient-to-r from-emerald-600 to-teal-600 text-white rounded-xl shadow-lg shadow-emerald-900/30 font-bold text-sm">
+                        <i class="fas fa-chart-candlestick text-lg text-emerald-300"></i>
+                        <span>شارت الكانفاس اللحظي</span>
+                    </a>
+                    <button onclick="openTelegramModal()" class="w-full flex items-center justify-between px-4 py-3.5 text-gray-400 hover:bg-gray-800 hover:text-white rounded-xl transition font-semibold text-sm">
+                        <div class="flex items-center gap-3">
+                            <i class="fab fa-telegram-plane text-lg text-blue-400"></i>
+                            <span>إعدادات بوت تليجرام</span>
+                        </div>
+                        <span class="text-[10px] px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-400 font-bold">بث آلي</span>
+                    </button>
+                    <button onclick="triggerManualScan()" class="w-full flex items-center gap-3 px-4 py-3.5 text-gray-400 hover:bg-gray-800 hover:text-white rounded-xl transition font-semibold text-sm">
+                        <i class="fas fa-radar text-lg text-purple-400"></i>
+                        <span>فحص فوري للسيولة (AI)</span>
+                    </button>
+                    <a href="/health" target="_blank" class="flex items-center justify-between px-4 py-3.5 text-gray-400 hover:bg-gray-800 hover:text-white rounded-xl transition font-semibold text-sm">
+                        <div class="flex items-center gap-3">
+                            <i class="fas fa-heartbeat text-lg text-rose-400"></i>
+                            <span>حالة السيرفر (Health Check)</span>
+                        </div>
+                        <i class="fas fa-external-link-alt text-xs text-gray-500"></i>
+                    </a>
+                </nav>
+            </div>
+
+            <!-- Footer info -->
+            <div class="p-4 bg-gray-950 border-t border-gray-800 space-y-2 text-xs text-gray-500">
+                <div class="flex items-center justify-between">
+                    <span>الرسم البياني:</span>
+                    <span class="text-emerald-400 font-mono font-bold">Native Canvas (No TradingView)</span>
+                </div>
+                <div class="flex items-center justify-between">
+                    <span>الاستضافة:</span>
+                    <span class="text-blue-400 font-mono font-bold">Render.com FastAPI</span>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Body -->
+        <main class="flex flex-col flex-1 overflow-y-auto">
+            
+            <!-- Top Navbar -->
+            <header class="flex items-center justify-between h-20 bg-gray-900 border-b border-gray-800 px-6 shrink-0">
+                <div class="flex items-center gap-3">
+                    <h1 class="text-xl font-black text-white">منصة المراقبة الحية والتحليل التلقائي لكوتيكس</h1>
+                    <span class="px-2.5 py-1 text-xs font-bold bg-blue-500/10 text-blue-400 border border-blue-500/20 rounded-full font-mono">
+                        إطار 1 دقيقة (1M)
+                    </span>
+                    <span id="otc-badge-header" class="px-2.5 py-1 text-xs font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30 rounded-full">
+                        ⚡ متاح 24/7 OTC
+                    </span>
+                </div>
+
+                <div class="flex items-center gap-3">
+                    <div id="connection-badge" class="flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                        <span class="w-2.5 h-2.5 bg-emerald-500 rounded-full animate-ping"></span>
+                        <span id="connection-text">متصل مباشر (Live WebSocket 24/7)</span>
+                    </div>
+
+                    <button onclick="triggerManualScan()" class="px-4 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white rounded-xl text-xs font-bold shadow-lg transition flex items-center gap-2">
+                        <i class="fas fa-search-dollar"></i>
+                        <span>فحص فوري</span>
+                    </button>
+                </div>
+            </header>
+
+            <!-- Dashboard Content -->
+            <div class="p-6 space-y-6">
+                
+                <!-- Top Row: Payouts List + Native Canvas Chart -->
+                <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
+                    
+                    <!-- Payouts Panel -->
+                    <div class="bg-gray-900 border border-gray-800 p-5 rounded-2xl shadow-xl flex flex-col justify-between">
+                        <div>
+                            <div class="flex items-center justify-between mb-3">
+                                <h2 class="text-base font-bold text-emerald-400 flex items-center gap-2">
+                                    <i class="fas fa-percentage text-emerald-400"></i>
+                                    <span>عوائد الأصول الحية (Payouts)</span>
+                                </h2>
+                                <span class="text-[11px] px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 font-mono font-bold">
+                                    حتى 95%
+                                </span>
+                            </div>
+
+                            <!-- OTC / Regular Tabs -->
+                            <div class="flex items-center gap-1 mb-3 bg-gray-950 p-1 rounded-xl border border-gray-800 text-xs">
+                                <button onclick="filterAssets('all')" id="btn-filter-all" class="flex-1 py-1 rounded-lg font-bold bg-gray-800 text-white">الكل</button>
+                                <button onclick="filterAssets('otc')" id="btn-filter-otc" class="flex-1 py-1 rounded-lg text-gray-400 hover:text-white">أزواج OTC</button>
+                                <button onclick="filterAssets('reg')" id="btn-filter-reg" class="flex-1 py-1 rounded-lg text-gray-400 hover:text-white">أزواج عادية</button>
+                            </div>
+
+                            <!-- Payouts List -->
+                            <div id="payouts-container" class="space-y-2 max-h-[300px] overflow-y-auto pr-1">
+                                <div class="text-gray-500 text-xs">جاري تحميل أزواج كوتيكس...</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Native HTML5 Canvas Chart (NO TradingView) -->
+                    <div class="bg-gray-900 border border-gray-800 p-5 rounded-2xl shadow-xl lg:col-span-3 flex flex-col">
+                        <!-- Chart Header -->
+                        <div class="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-gray-800">
+                            <div class="flex items-center gap-3">
+                                <span id="chart-pair-name" class="text-xl font-black font-mono text-white">USD/BRL (OTC)</span>
+                                <span id="chart-price-badge" class="px-2.5 py-1 text-sm font-bold font-mono rounded-lg bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                                    5.4850
+                                </span>
+                                <span id="chart-payout-badge" class="px-2 py-0.5 text-xs font-bold rounded-md bg-emerald-500/10 text-emerald-400">
+                                    العائد: 95%
+                                </span>
+                            </div>
+
+                            <div class="flex items-center gap-2">
+                                <span class="text-xs text-cyan-400 font-mono"><i class="fas fa-minus text-[10px]"></i> EMA 9</span>
+                                <span class="text-xs text-amber-400 font-mono ml-2"><i class="fas fa-minus text-[10px]"></i> EMA 21</span>
+                                <span class="text-xs text-gray-500 font-mono">100% Native HTML5 Canvas Engine</span>
+                            </div>
+                        </div>
+
+                        <!-- Canvas Container -->
+                        <div class="canvas-container pt-3">
+                            <canvas id="quotex-canvas" class="w-full h-full rounded-xl bg-gray-950 border border-gray-800"></canvas>
+                        </div>
+                    </div>
+
+                </div>
+
+                <!-- Bottom Row: Controls & Live Signals Stream -->
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    
+                    <!-- Quick System Controls -->
+                    <div class="bg-gray-900 border border-gray-800 p-5 rounded-2xl shadow-xl space-y-4">
+                        <h2 class="text-base font-bold text-purple-400 flex items-center gap-2">
+                            <i class="fas fa-cogs text-purple-400"></i>
+                            <span>أزرار التحكم بالسيرفر السحابي (Render)</span>
+                        </h2>
+
+                        <div class="space-y-3">
+                            <button onclick="triggerManualScan()" class="w-full py-3.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold rounded-xl shadow-lg transition flex items-center justify-center gap-2">
+                                <i class="fas fa-search-dollar"></i>
+                                <span>فحص السوق وإرسال إشارة فورية</span>
+                            </button>
+
+                            <button onclick="openTelegramModal()" class="w-full py-3.5 bg-gradient-to-r from-cyan-600 to-blue-700 hover:from-cyan-500 hover:to-blue-600 text-white font-bold rounded-xl shadow-lg transition flex items-center justify-center gap-2">
+                                <i class="fab fa-telegram-plane"></i>
+                                <span>إعداد واختبار بوت تليجرام</span>
+                            </button>
+                        </div>
+
+                        <div class="p-3 bg-gray-950 rounded-xl border border-gray-800 text-xs text-gray-400 space-y-1.5 font-mono">
+                            <div class="flex justify-between">
+                                <span>حالة البوت:</span>
+                                <span class="text-emerald-400 font-bold">بث تلقائي 24/7</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span>الحد الأدنى للدقة:</span>
+                                <span class="text-yellow-400 font-bold">85% فأعلى</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span>المنصة:</span>
+                                <span class="text-white font-bold">Quotex Direct Engine</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Live Signal Feed Stream -->
+                    <div class="bg-gray-900 border border-gray-800 p-5 rounded-2xl shadow-xl lg:col-span-2 flex flex-col">
+                        <div class="flex items-center justify-between mb-3">
+                            <h2 class="text-base font-bold text-amber-400 flex items-center gap-2">
+                                <i class="fas fa-broadcast-tower text-amber-400 animate-pulse"></i>
+                                <span>تدفق الصفقات والتوصيات اللحظية (Live Signal Stream)</span>
+                            </h2>
+                            <span id="signals-count" class="text-xs text-gray-500 font-mono">0 إشارات</span>
+                        </div>
+
+                        <div id="signals-stream" class="bg-gray-950 border border-gray-800 p-4 rounded-xl overflow-y-auto h-52 space-y-2.5 font-mono text-xs">
+                            <div class="text-gray-500 text-center py-10">في انتظار رصد فرص قوية بناءً على تحليل الشموع بدقيقة...</div>
+                        </div>
+                    </div>
+
+                </div>
+
+            </div>
+        </main>
+    </div>
+
+    <!-- Telegram Modal -->
+    <div id="telegram-modal" class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-gray-900 border border-gray-800 rounded-2xl w-full max-w-lg p-6 space-y-4 shadow-2xl">
+            <div class="flex items-center justify-between pb-3 border-b border-gray-800">
+                <h3 class="text-lg font-bold text-white flex items-center gap-2">
+                    <i class="fab fa-telegram-plane text-blue-400"></i>
+                    <span>إعدادات وتفعيل بوت تليجرام</span>
+                </h3>
+                <button onclick="closeTelegramModal()" class="text-gray-400 hover:text-white"><i class="fas fa-times"></i></button>
+            </div>
+
+            <div class="space-y-3">
+                <div>
+                    <label class="block text-xs font-bold text-gray-300 mb-1">Telegram Bot Token</label>
+                    <input id="tg-token-input" type="text" placeholder="123456789:ABCdefGhI..." class="w-full bg-gray-950 border border-gray-800 rounded-xl px-3 py-2 text-xs text-white font-mono focus:outline-none focus:border-blue-500">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-gray-300 mb-1">Telegram Chat ID / Channel ID</label>
+                    <input id="tg-chat-input" type="text" placeholder="@MyChannel أو 12345678" class="w-full bg-gray-950 border border-gray-800 rounded-xl px-3 py-2 text-xs text-white font-mono focus:outline-none focus:border-blue-500">
+                </div>
+                <div id="tg-status-box" class="hidden p-3 rounded-xl text-xs font-semibold"></div>
+            </div>
+
+            <div class="flex items-center justify-between pt-3 border-t border-gray-800">
+                <button onclick="testTelegram()" class="px-4 py-2 bg-blue-600/30 text-blue-300 hover:bg-blue-600/50 rounded-xl text-xs font-bold transition">
+                    إرسال إشارة تجريبية
+                </button>
+                <div class="flex gap-2">
+                    <button onclick="closeTelegramModal()" class="px-4 py-2 bg-gray-800 text-gray-300 rounded-xl text-xs font-bold">إلغاء</button>
+                    <button onclick="saveTelegramConfig()" class="px-5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold shadow-lg">حفظ التوكن</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Native Canvas & WebSocket Script (Zero TradingView) -->
+    <script>
+        let currentPair = "USD/BRL (OTC)";
+        let globalState = {};
+        let activeAssetFilter = 'all';
+
+        // Setup High-DPI HTML5 Canvas
+        const canvas = document.getElementById('quotex-canvas');
+        const ctx = canvas.getContext('2d');
+
+        function resizeCanvas() {
+            const rect = canvas.getBoundingClientRect();
+            const dpr = window.devicePixelRatio || 1;
+            canvas.width = rect.width * dpr;
+            canvas.height = rect.height * dpr;
+            ctx.scale(dpr, dpr);
+            renderNativeChart();
+        }
+
+        window.addEventListener('resize', resizeCanvas);
+
+        // Native EMA helper
+        function calculateEMA(candles, period) {
+            if (!candles || candles.length === 0) return [];
+            const k = 2 / (period + 1);
+            const ema = [];
+            let prev = candles[0].close;
+            ema.push(prev);
+            for (let i = 1; i < candles.length; i++) {
+                const val = (candles[i].close * k) + (prev * (1 - k));
+                ema.push(val);
+                prev = val;
+            }
+            return ema;
+        }
+
+        // Render Native Candlestick Chart
+        function renderNativeChart() {
+            const rect = canvas.getBoundingClientRect();
+            const width = rect.width;
+            const height = rect.height;
+            if (width === 0 || height === 0) return;
+
+            // Clear Background
+            ctx.fillStyle = "#030712";
+            ctx.fillRect(0, 0, width, height);
+
+            const candles = (globalState.candles && globalState.candles[currentPair]) || [];
+            if (candles.length === 0) {
+                ctx.fillStyle = "#64748b";
+                ctx.font = "14px Cairo, sans-serif";
+                ctx.textAlign = "center";
+                ctx.fillText("جاري جلب شموع " + currentPair + " لحظياً...", width / 2, height / 2);
+                return;
+            }
+
+            // Visible candles (last 35-40 candles)
+            const visibleCandles = candles.slice(-35);
+            let minPrice = Infinity;
+            let maxPrice = -Infinity;
+
+            visibleCandles.forEach(c => {
+                if (c.low < minPrice) minPrice = c.low;
+                if (c.high > maxPrice) maxPrice = c.high;
+            });
+
+            const padding = (maxPrice - minPrice) * 0.15 || 0.001;
+            minPrice -= padding;
+            maxPrice += padding;
+            const priceRange = maxPrice - minPrice;
+
+            const chartHeight = height - 30; // 30px bottom for time axis
+            const rightMargin = 75; // for price scale
+            const chartWidth = width - rightMargin;
+
+            // Grid lines
+            ctx.strokeStyle = "rgba(31, 41, 55, 0.4)";
+            ctx.lineWidth = 1;
+            for (let i = 1; i <= 4; i++) {
+                const y = (chartHeight / 5) * i;
+                ctx.beginPath();
+                ctx.moveTo(0, y);
+                ctx.lineTo(chartWidth, y);
+                ctx.stroke();
+
+                // Price label
+                const priceAtY = maxPrice - (i / 5) * priceRange;
+                ctx.fillStyle = "#6b7280";
+                ctx.font = "10px JetBrains Mono, monospace";
+                ctx.textAlign = "left";
+                ctx.fillText(priceAtY.toFixed(4), chartWidth + 5, y + 3);
+            }
+
+            const candleSpacing = chartWidth / visibleCandles.length;
+            const candleWidth = Math.max(3, candleSpacing * 0.65);
+
+            // Draw EMAs (EMA 9 and EMA 21)
+            const ema9 = calculateEMA(visibleCandles, 9);
+            const ema21 = calculateEMA(visibleCandles, 21);
+
+            function drawEmaLine(emaValues, color) {
+                ctx.strokeStyle = color;
+                ctx.lineWidth = 1.5;
+                ctx.beginPath();
+                let started = false;
+                emaValues.forEach((val, idx) => {
+                    const x = (idx * candleSpacing) + (candleSpacing / 2);
+                    const y = chartHeight - ((val - minPrice) / priceRange) * chartHeight;
+                    if (!started) {
+                        ctx.moveTo(x, y);
+                        started = true;
+                    } else {
+                        ctx.lineTo(x, y);
+                    }
+                });
+                ctx.stroke();
+            }
+
+            drawEmaLine(ema9, "#06b6d4"); // Cyan EMA 9
+            drawEmaLine(ema21, "#f59e0b"); // Amber EMA 21
+
+            // Draw Candlesticks
+            visibleCandles.forEach((c, idx) => {
+                const x = (idx * candleSpacing) + (candleSpacing / 2);
+                const isGreen = c.close >= c.open;
+                const candleColor = isGreen ? "#10b981" : "#ef4444";
+
+                const yHigh = chartHeight - ((c.high - minPrice) / priceRange) * chartHeight;
+                const yLow = chartHeight - ((c.low - minPrice) / priceRange) * chartHeight;
+                const yOpen = chartHeight - ((c.open - minPrice) / priceRange) * chartHeight;
+                const yClose = chartHeight - ((c.close - minPrice) / priceRange) * chartHeight;
+
+                // Wick
+                ctx.strokeStyle = candleColor;
+                ctx.lineWidth = 1.5;
+                ctx.beginPath();
+                ctx.moveTo(x, yHigh);
+                ctx.lineTo(x, yLow);
+                ctx.stroke();
+
+                // Body
+                ctx.fillStyle = candleColor;
+                const bodyY = Math.min(yOpen, yClose);
+                const bodyHeight = Math.max(2, Math.abs(yClose - yOpen));
+                ctx.fillRect(x - (candleWidth / 2), bodyY, candleWidth, bodyHeight);
+            });
+
+            // Current price line & tag
+            const lastCandle = visibleCandles[visibleCandles.length - 1];
+            if (lastCandle) {
+                const currentY = chartHeight - ((lastCandle.close - minPrice) / priceRange) * chartHeight;
+                const isGreen = lastCandle.close >= lastCandle.open;
+                ctx.strokeStyle = isGreen ? "rgba(16, 185, 129, 0.7)" : "rgba(239, 68, 68, 0.7)";
+                ctx.setLineDash([4, 4]);
+                ctx.beginPath();
+                ctx.moveTo(0, currentY);
+                ctx.lineTo(chartWidth, currentY);
+                ctx.stroke();
+                ctx.setLineDash([]);
+
+                // Floating Price Badge on Right Scale
+                ctx.fillStyle = isGreen ? "#10b981" : "#ef4444";
+                ctx.fillRect(chartWidth + 2, currentY - 10, rightMargin - 4, 20);
+                ctx.fillStyle = "#ffffff";
+                ctx.font = "bold 10px JetBrains Mono, monospace";
+                ctx.textAlign = "center";
+                ctx.fillText(lastCandle.close.toFixed(4), chartWidth + (rightMargin / 2), currentY + 3);
+            }
+        }
+
+        // Connect to FastAPI WebSocket
+        const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+        const wsUrl = `${protocol}//${window.location.host}/ws/dashboard`;
+        let socket;
+
+        function connectWebSocket() {
+            socket = new WebSocket(wsUrl);
+
+            socket.onopen = function() {
+                const badge = document.getElementById('connection-badge');
+                badge.className = "flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20";
+                document.getElementById('connection-text').innerText = "متصل مباشر (Live WebSocket 24/7)";
+            };
+
+            socket.onmessage = function(event) {
+                const data = JSON.parse(event.data);
+                globalState = data;
+
+                // Update Payouts List
+                renderPayouts(data.payouts, data.assets);
+
+                // Update Chart Header Stats
+                const candles = (data.candles && data.candles[currentPair]) || [];
+                if (candles.length > 0) {
+                    const lastC = candles[candles.length - 1];
+                    document.getElementById('chart-price-badge').innerText = lastC.close.toFixed(4);
+                }
+                const payoutVal = data.payouts ? data.payouts[currentPair] || 88 : 88;
+                document.getElementById('chart-payout-badge').innerText = `العائد: ${payoutVal}%`;
+
+                // Update Signals Feed
+                renderSignals(data.latest_signals || []);
+
+                // Redraw Canvas
+                renderNativeChart();
+            };
+
+            socket.onclose = function() {
+                const badge = document.getElementById('connection-badge');
+                badge.className = "flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-bold bg-amber-500/10 text-amber-400 border border-amber-500/20";
+                document.getElementById('connection-text').innerText = "جاري إعادة الاتصال بالسيرفر...";
+                setTimeout(connectWebSocket, 2000);
+            };
+        }
+
+        function renderPayouts(payouts, assets) {
+            if (!payouts || !assets) return;
+            const container = document.getElementById('payouts-container');
+            let html = "";
+
+            assets.forEach(asset => {
+                if (activeAssetFilter === 'otc' && !asset.is_otc) return;
+                if (activeAssetFilter === 'reg' && asset.is_otc) return;
+
+                const pair = asset.id;
+                const payout = payouts[pair] || asset.payout;
+                const isSelected = pair === currentPair;
+
+                html += `
+                <div onclick="switchPair('${pair}')" class="flex items-center justify-between p-2.5 rounded-xl border cursor-pointer transition ${
+                    isSelected ? 'bg-blue-900/30 border-blue-500 shadow-md' : 'bg-gray-950/70 border-gray-800 hover:bg-gray-800'
+                }">
+                    <div class="flex items-center gap-2">
+                        <span class="w-2 h-2 rounded-full ${isSelected ? 'bg-blue-400 animate-ping' : 'bg-gray-600'}"></span>
+                        <span class="font-bold font-mono text-xs text-white">${pair}</span>
+                        ${asset.is_otc ? '<span class="text-[9px] px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-400 font-bold">OTC</span>' : ''}
+                    </div>
+                    <span class="px-2 py-0.5 font-bold font-mono text-xs rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">${payout}%</span>
+                </div>`;
+            });
+
+            container.innerHTML = html;
+        }
+
+        function renderSignals(signals) {
+            const container = document.getElementById('signals-stream');
+            document.getElementById('signals-count').innerText = `${signals.length} إشارات`;
+
+            if (signals.length === 0) {
+                container.innerHTML = '<div class="text-gray-500 text-center py-10">في انتظار رصد فرص قوية...</div>';
+                return;
+            }
+
+            let html = "";
+            signals.slice(0, 15).forEach(sig => {
+                const isCall = sig.direction === 'CALL';
+                const color = isCall ? 'text-emerald-400 bg-emerald-950/20 border-emerald-500/30' : 'text-rose-400 bg-rose-950/20 border-rose-500/30';
+                const otcBadge = sig.is_otc ? '<span class="text-[9px] px-1 bg-amber-500/20 text-amber-400 rounded">OTC</span>' : '';
+
+                html += `
+                <div class="p-3 rounded-xl border ${color} flex items-center justify-between">
+                    <div>
+                        <div class="flex items-center gap-2">
+                            <b>${sig.pair}</b> ${otcBadge}
+                            <span>| الاتجاه: <b class="${isCall ? 'text-emerald-400' : 'text-rose-400'}">${sig.direction} ${isCall ? '⬆' : '⬇'}</b></span>
+                            <span class="text-gray-400">| عائد: ${sig.payout}%</span>
+                        </div>
+                        <div class="text-[10px] text-gray-400 mt-1">${sig.strategy}</div>
+                    </div>
+                    <div class="text-left">
+                        <span class="font-bold text-yellow-300">دقة: ${sig.confidence}%</span>
+                        <div class="text-[10px] text-gray-500">${sig.status === 'WIN' ? '✅ ربح ITM' : sig.status === 'LOSS' ? '❌ خسارة' : '⏳ جارية'}</div>
+                    </div>
+                </div>`;
+            });
+
+            container.innerHTML = html;
+        }
+
+        function switchPair(pair) {
+            currentPair = pair;
+            document.getElementById('chart-pair-name').innerText = pair;
+            renderNativeChart();
+        }
+
+        function filterAssets(type) {
+            activeAssetFilter = type;
+            document.getElementById('btn-filter-all').className = type === 'all' ? 'flex-1 py-1 rounded-lg font-bold bg-gray-800 text-white' : 'flex-1 py-1 rounded-lg text-gray-400 hover:text-white';
+            document.getElementById('btn-filter-otc').className = type === 'otc' ? 'flex-1 py-1 rounded-lg font-bold bg-amber-500/20 text-amber-300' : 'flex-1 py-1 rounded-lg text-gray-400 hover:text-white';
+            document.getElementById('btn-filter-reg').className = type === 'reg' ? 'flex-1 py-1 rounded-lg font-bold bg-blue-500/20 text-blue-300' : 'flex-1 py-1 rounded-lg text-gray-400 hover:text-white';
+            if (globalState.payouts && globalState.assets) {
+                renderPayouts(globalState.payouts, globalState.assets);
+            }
+        }
+
+        async function triggerManualScan() {
+            try {
+                const res = await fetch('/api/scan', { method: 'POST' });
+                const data = await res.json();
+                if (data.success) {
+                    alert(`✅ تم رصد إشارة فورية بنجاح على الزوج: ${data.signal.pair} (${data.signal.direction}) بدقة ${data.signal.confidence}%!`);
+                }
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        function openTelegramModal() {
+            document.getElementById('telegram-modal').classList.remove('hidden');
+        }
+
+        function closeTelegramModal() {
+            document.getElementById('telegram-modal').classList.add('hidden');
+        }
+
+        async function saveTelegramConfig() {
+            const token = document.getElementById('tg-token-input').value;
+            const chat = document.getElementById('tg-chat-input').value;
+            const statusBox = document.getElementById('tg-status-box');
+
+            const res = await fetch('/api/telegram/config', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ bot_token: token, chat_id: chat })
+            });
+            const data = await res.json();
+            statusBox.classList.remove('hidden');
+            if (data.success && data.test && data.test.success) {
+                statusBox.className = "p-3 rounded-xl text-xs font-semibold bg-emerald-950 text-emerald-300 border border-emerald-500/40";
+                statusBox.innerText = `تم الربط بنجاح! ${data.test.message}`;
+            } else {
+                statusBox.className = "p-3 rounded-xl text-xs font-semibold bg-rose-950 text-rose-300 border border-rose-500/40";
+                statusBox.innerText = `فشل الربط: ${data.test ? data.test.message : data.message}`;
+            }
+        }
+
+        async function testTelegram() {
+            const res = await fetch('/api/telegram/test', { method: 'POST' });
+            const data = await res.json();
+            alert(data.success ? "✅ تم إرسال الإشارة التجريبية إلى تليجرام!" : "❌ فشل الإرسال، تحقق من التوكن والمعرف");
+        }
+
+        // Initialize Canvas & WS
+        setTimeout(() => {
+            resizeCanvas();
+            connectWebSocket();
+        }, 100);
+    </script>
+</body>
+</html>

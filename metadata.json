@@ -1,0 +1,6 @@
+{
+  "name": "Quotex Elite Terminal",
+  "description": "Quotex Elite Pro Terminal - منصة تداول احترافية متكاملة مع شارت تفاعلي لحظي TradingView، تحليلات ومؤشرات ذكية، وتنبيهات فورية للبوت",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
